@@ -69,15 +69,18 @@ function AnimatedCounter({
   suffix = "",
   prefix = "",
   decimals = 0,
+  fallback,
 }: {
   value: number;
   suffix?: string;
   prefix?: string;
   decimals?: number;
+  fallback?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const prefersReducedMotion = useReducedMotion();
+  const [hasAnimated, setHasAnimated] = useState(false);
 
   const spring = useSpring(0, {
     stiffness: 50,
@@ -90,14 +93,16 @@ function AnimatedCounter({
   });
 
   useEffect(() => {
-    if (isInView) {
-      if (prefersReducedMotion) {
-        spring.set(value);
-      } else {
-        spring.set(value);
-      }
+    if (isInView && !hasAnimated) {
+      setHasAnimated(true);
+      spring.set(value);
     }
-  }, [isInView, spring, value, prefersReducedMotion]);
+  }, [isInView, spring, value, hasAnimated]);
+
+  // Show fallback text until animation starts (better SSR)
+  if (!hasAnimated && fallback) {
+    return <span ref={ref}>{fallback}</span>;
+  }
 
   return <motion.span ref={ref}>{display}</motion.span>;
 }
@@ -458,6 +463,7 @@ export default function Home() {
                       value={stat.value}
                       suffix={stat.suffix || ""}
                       decimals={stat.decimals || 0}
+                      fallback={stat.displayStatic}
                     />
                   )}
                 </p>
